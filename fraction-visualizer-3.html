@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Fraction Calculator Visualizer</title>
+
+<style>
+body { font-family: Arial; text-align:center; background:#f2f2f2; }
+.container { max-width:900px; margin:auto; }
+.controls { background:white; padding:20px; border-radius:10px; }
+input, select { font-size:20px; margin:5px; width:60px; text-align:center; }
+button { font-size:20px; margin-top:10px; }
+canvas { border:2px solid #444; margin-top:20px; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<div class="controls">
+
+<h2>Fraction Calculator</h2>
+
+<div>
+<input id="n1" type="number" value="1"> /
+<input id="d1" type="number" value="1">
+</div>
+
+<div>
+<select id="op">
+<option value="+">+</option>
+<option value="-">−</option>
+<option value="*">×</option>
+</select>
+</div>
+
+<div>
+<input id="n2" type="number" value="1"> /
+<input id="d2" type="number" value="1">
+</div>
+
+<button onclick="drawFraction()">Calculate</button>
+
+<h2 id="fractionLabel"></h2>
+
+<canvas id="pieCanvas" width="400" height="250"></canvas>
+<canvas id="barCanvas" width="400" height="250"></canvas>
+
+</div>
+</div>
+
+<script>
+
+function gcd(a,b){ return b ? gcd(b, a%b) : a; }
+
+function drawFraction(){
+
+  let n1=+n1El.value, d1=+d1El.value;
+  let n2=+n2El.value, d2=+d2El.value;
+  let op=opEl.value;
+
+  if(d1<=0 || d2<=0){ alert("Denominator > 0"); return; }
+
+  let num, den;
+
+  if(op==="+"){ num=n1*d2+n2*d1; den=d1*d2; }
+  if(op==="-"){ num=n1*d2-n2*d1; den=d1*d2; }
+  if(op==="*"){ num=n1*n2; den=d1*d2; }
+
+  let g=gcd(Math.abs(num),Math.abs(den));
+  num/=g; den/=g;
+
+  fractionLabel.innerHTML =
+    `${n1}/${d1} ${op} ${n2}/${d2} = ${num}/${den}`;
+
+  drawPie(num,den);
+  drawBar(num,den);
+}
+
+const n1El=document.getElementById("n1");
+const d1El=document.getElementById("d1");
+const n2El=document.getElementById("n2");
+const d2El=document.getElementById("d2");
+const opEl=document.getElementById("op");
+const fractionLabel=document.getElementById("fractionLabel");
+
+function drawPie(num, den){
+
+  const ctx = pieCanvas.getContext("2d");
+  ctx.clearRect(0,0,400,250);
+
+  let full = Math.floor(num/den);
+  let rem = num % den;
+
+  let r=40, spacing=100;
+
+  for(let c=0;c<full+(rem>0?1:0);c++){
+
+    let cx=60+c*spacing, cy=120;
+    let filled = (c<full)?den:rem;
+
+    for(let i=0;i<den;i++){
+      let a1=-Math.PI/2+i*(2*Math.PI/den);
+      let a2=a1+(2*Math.PI/den);
+
+      ctx.beginPath();
+      ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,r,a1,a2);
+      ctx.closePath();
+
+      ctx.fillStyle = i<filled ? "red" : "#ddd";
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+}
+
+function drawBar(num, den){
+
+  const ctx = barCanvas.getContext("2d");
+  ctx.clearRect(0,0,400,250);
+
+  let full=Math.floor(num/den);
+  let rem=num%den;
+
+  let w=30, spacing=15, h=180, y=40;
+
+  for(let b=0;b<full+(rem>0?1:0);b++){
+
+    let x=40+b*(w+spacing);
+
+    ctx.strokeRect(x,y,w,h);
+
+    let frac = (b<full)?1:rem/den;
+
+    ctx.fillStyle="dodgerblue";
+    ctx.fillRect(x,y+h-h*frac,w,h*frac);
+
+    for(let i=1;i<den;i++){
+      let yy=y+(h/den)*i;
+      ctx.beginPath();
+      ctx.moveTo(x,yy);
+      ctx.lineTo(x+w,yy);
+      ctx.strokeStyle="#666";
+      ctx.stroke();
+    }
+  }
+}
+
+window.onload=drawFraction;
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fraction Visualizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        input {
+            width: 80px;
+            padding: 8px;
+            font-size: 18px;
+            text-align: center;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 15px 0;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .fraction-text {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .visuals {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .visual-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 8px;
+            background: #fff;
+        }
+        canvas {
+            background: #fff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Fraction Visualizer</h2>
+    
+    <div class="input-group">
+        <label>Numerator<br><input type="number" id="numerator" value="1" min="0"></label>
+    </div>
+    <div class="input-group">
+        <label>Denominator<br><input type="number" id="denominator" value="3" min="1"></label>
+    </div>
+    
+    <button onclick="drawFraction()">Draw Fraction</button>
+    
+    <div class="fraction-text" id="fractionDisplay">1 / 3</div>
+    
+    <div class="visuals">
+        <div class="visual-box">
+            <h3>Pie Fraction</h3>
+            <canvas id="pieCanvas" width="150" height="150"></canvas>
+        </div>
+        <div class="visual-box">
+            <h3>Rectangle Fill</h3>
+            <canvas id="rectCanvas" width="150" height="150"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+function drawFraction() {
+    const num = parseInt(document.getElementById('numerator').value) || 0;
+    const den = parseInt(document.getElementById('denominator').value) || 1;
+    
+    // Update text
+    document.getElementById('fractionDisplay').innerText = `${num} / ${den}`;
+    
+    // 1. Draw Pie Chart
+    const pieCanvas = document.getElementById('pieCanvas');
+    const ctxPie = pieCanvas.getContext('2d');
+    ctxPie.clearRect(0, 0, 150, 150);
+    
+    const centerX = 75;
+    const centerY = 75;
+    const radius = 60;
+    const sliceAngle = (2 * Math.PI) / den;
+    
+    for (let i = 0; i < den; i++) {
+        ctxPie.beginPath();
+        ctxPie.moveTo(centerX, centerY);
+        ctxPie.arc(centerX, centerY, radius, i * sliceAngle - Math.PI/2, (i + 1) * sliceAngle - Math.PI/2);
+        ctxPie.closePath();
+        
+        // Fill the slices up to the numerator count
+        ctxPie.fillStyle = i < num ? '#007bff' : '#e9ecef';
+        ctxPie.fill();
+        ctxPie.strokeStyle = '#fff';
+        ctxPie.lineWidth = 2;
+        ctxPie.stroke();
+    }
+    
+    // 2. Draw Rectangle Fill
+    const rectCanvas = document.getElementById('rectCanvas');
+    const ctxRect = rectCanvas.getContext('2d');
+    ctxRect.clearRect(0, 0, 150, 150);
+    
+    const rectWidth = 130;
+    const rectHeight = 40;
+    const startX = 10;
+    const startY = 55; // centered vertically
+    const blockWidth = rectWidth / den;
+    
+    for (let i = 0; i < den; i++) {
+        ctxRect.beginPath();
+        ctxRect.rect(startX + (i * blockWidth), startY, blockWidth, rectHeight);
+        ctxRect.fillStyle = i < num ? '#28a745' : '#e9ecef';
+        ctxRect.fill();
+        ctxRect.strokeStyle = '#333';
+        ctxRect.lineWidth = 1;
+        ctxRect.stroke();
+    }
+}
+
+// Initial draw on page load
+drawFraction();
+</script>
+
+</body>
+</html>

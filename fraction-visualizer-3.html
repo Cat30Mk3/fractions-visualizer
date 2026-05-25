@@ -6,11 +6,23 @@
 
 <style>
 body { font-family: Arial; text-align:center; background:#f2f2f2; }
-.container { max-width:900px; margin:auto; }
+.container { max-width:640px; margin:auto; }
 .controls { background:white; padding:20px; border-radius:10px; }
 input, select { font-size:20px; margin:5px; width:60px; text-align:center; }
 button { font-size:20px; margin-top:10px; }
-canvas { border:2px solid #444; margin-top:20px; }
+.fraction-row { display:flex; justify-content:center; align-items:center; gap:14px; margin:10px 0; }
+.fraction-stack { display:flex; flex-direction:column; align-items:center; line-height:1; }
+.fraction-line { width:72px; border-top:2px solid #444; margin:2px 0; }
+.operator-wrap select { width:70px; }
+.equals-sign { font-size:28px; font-weight:bold; }
+.fraction-value { width:60px; min-height:32px; display:flex; align-items:center; justify-content:center; font-size:20px; }
+.mode-row { margin:8px 0 14px; }
+.mode-row select { width:auto; min-width:170px; }
+.hidden { display:none; }
+.mixed-line { min-height:24px; margin:2px 0 8px; font-size:16px; color:#333; }
+.visual-note { min-height:22px; margin:4px 0 8px; color:#8a5a00; font-size:16px; }
+.charts { display:flex; flex-direction:column; align-items:center; gap:12px; }
+canvas { border:2px solid #444; margin-top:0; width:100%; max-width:520px; height:auto; }
 </style>
 </head>
 
@@ -19,32 +31,57 @@ canvas { border:2px solid #444; margin-top:20px; }
 <div class="container">
 <div class="controls">
 
-<h2>Fraction Calculator</h2>
+<h2>Adeline's Fraction Calculator</h2>
 
-<div>
-<input id="n1" type="number" value="1"> /
-<input id="d1" type="number" value="1">
+<div class="mode-row">
+  <label for="modeSelect">Mode:</label>
+  <select id="modeSelect" onchange="updateMode()">
+    <option value="calculator" selected>Calculator</option>
+    <option value="single">Single Fraction Plot</option>
+  </select>
 </div>
 
-<div>
-<select id="op">
-<option value="+">+</option>
-<option value="-">−</option>
-<option value="*">×</option>
-</select>
-</div>
+<div class="fraction-row">
+  <div class="fraction-stack">
+    <input id="n1" type="number" value="1">
+    <div class="fraction-line"></div>
+    <input id="d1" type="number" value="1">
+  </div>
 
-<div>
-<input id="n2" type="number" value="1"> /
-<input id="d2" type="number" value="1">
+  <div class="operator-wrap calc-only">
+    <select id="op">
+      <option value="+">+</option>
+      <option value="-">−</option>
+      <option value="*" selected>×</option>
+      <option value="/">÷</option>
+    </select>
+  </div>
+
+  <div class="fraction-stack calc-only">
+    <input id="n2" type="number" value="1">
+    <div class="fraction-line"></div>
+    <input id="d2" type="number" value="1">
+  </div>
+
+  <div class="equals-sign calc-only">=</div>
+
+  <div class="fraction-stack calc-only">
+    <div id="resultNum" class="fraction-value">1</div>
+    <div class="fraction-line"></div>
+    <div id="resultDen" class="fraction-value">1</div>
+  </div>
 </div>
 
 <button onclick="drawFraction()">Calculate</button>
 
 <h2 id="fractionLabel"></h2>
+<div id="mixedLine" class="mixed-line"></div>
+<div id="visualNote" class="visual-note"></div>
 
-<canvas id="pieCanvas" width="400" height="250"></canvas>
-<canvas id="barCanvas" width="400" height="250"></canvas>
+<div class="charts">
+  <canvas id="pieCanvas" width="520" height="280"></canvas>
+  <canvas id="barCanvas" width="520" height="280"></canvas>
+</div>
 
 </div>
 </div>
@@ -53,25 +90,76 @@ canvas { border:2px solid #444; margin-top:20px; }
 
 function gcd(a,b){ return b ? gcd(b, a%b) : a; }
 
+function toMixedString(n, d){
+  if(d===0){ return "undefined"; }
+  let sign = n < 0 ? "-" : "";
+  let absNum = Math.abs(n);
+  let whole = Math.floor(absNum / d);
+  let rem = absNum % d;
+
+  if(whole===0){
+    return `${sign}${rem}/${d}`;
+  }
+  if(rem===0){
+    return `${sign}${whole}`;
+  }
+  return `${sign}${whole} ${rem}/${d}`;
+}
+
 function drawFraction(){
 
+  let mode=modeEl.value;
   let n1=+n1El.value, d1=+d1El.value;
   let n2=+n2El.value, d2=+d2El.value;
   let op=opEl.value;
 
-  if(d1<=0 || d2<=0){ alert("Denominator > 0"); return; }
+  if(d1<=0){ alert("Denominator > 0"); return; }
+  if(mode==="calculator" && d2<=0){ alert("Denominator > 0"); return; }
 
   let num, den;
 
-  if(op==="+"){ num=n1*d2+n2*d1; den=d1*d2; }
-  if(op==="-"){ num=n1*d2-n2*d1; den=d1*d2; }
-  if(op==="*"){ num=n1*n2; den=d1*d2; }
+  if(mode==="single"){
+    num=n1;
+    den=d1;
+  } else {
+    if(op==="+"){ num=n1*d2+n2*d1; den=d1*d2; }
+    if(op==="-"){ num=n1*d2-n2*d1; den=d1*d2; }
+    if(op==="*"){ num=n1*n2; den=d1*d2; }
+    if(op==="/"){
+      if(n2===0){ alert("Cannot divide by 0"); return; }
+      num=n1*d2; den=d1*n2;
+    }
+  }
 
   let g=gcd(Math.abs(num),Math.abs(den));
   num/=g; den/=g;
 
-  fractionLabel.innerHTML =
-    `${n1}/${d1} ${op} ${n2}/${d2} = ${num}/${den}`;
+  if(den<0){ num=-num; den=-den; }
+
+  resultNumEl.textContent = num;
+  resultDenEl.textContent = den;
+
+  let displayOp = op;
+  if(op==="*") displayOp = "×";
+  if(op==="/") displayOp = "÷";
+  if(op==="-") displayOp = "−";
+
+  if(mode==="single"){
+    fractionLabel.innerHTML = `${n1}/${d1} = ${num}/${den}`;
+    mixedLineEl.textContent = `(${toMixedString(n1,d1)}) = ${toMixedString(num,den)}`;
+  } else {
+    fractionLabel.innerHTML =
+      `${n1}/${d1} ${displayOp} ${n2}/${d2} = ${num}/${den}`;
+    mixedLineEl.textContent = `(${toMixedString(n1,d1)}) ${displayOp} (${toMixedString(n2,d2)}) = ${toMixedString(num,den)}`;
+  }
+
+  let absNum = Math.abs(num);
+  let totalUnits = Math.floor(absNum/den) + ((absNum%den)>0 ? 1 : 0);
+  if(totalUnits>maxVisualUnits){
+    visualNoteEl.textContent = `Showing first ${maxVisualUnits} units of ${totalUnits}.`;
+  } else {
+    visualNoteEl.textContent = "";
+  }
 
   drawPie(num,den);
   drawBar(num,den);
@@ -82,22 +170,58 @@ const d1El=document.getElementById("d1");
 const n2El=document.getElementById("n2");
 const d2El=document.getElementById("d2");
 const opEl=document.getElementById("op");
+const modeEl=document.getElementById("modeSelect");
 const fractionLabel=document.getElementById("fractionLabel");
+const mixedLineEl=document.getElementById("mixedLine");
+const visualNoteEl=document.getElementById("visualNote");
+const resultNumEl=document.getElementById("resultNum");
+const resultDenEl=document.getElementById("resultDen");
+const maxVisualUnits=10;
+
+function updateMode(){
+  const calculatorMode = modeEl.value === "calculator";
+  const calcOnlyEls = document.querySelectorAll(".calc-only");
+  for(const el of calcOnlyEls){
+    el.classList.toggle("hidden", !calculatorMode);
+  }
+  drawFraction();
+}
 
 function drawPie(num, den){
 
   const ctx = pieCanvas.getContext("2d");
-  ctx.clearRect(0,0,400,250);
+  const cw = pieCanvas.width;
+  const ch = pieCanvas.height;
+  ctx.clearRect(0,0,cw,ch);
 
   let full = Math.floor(num/den);
   let rem = num % den;
 
-  let r=40, spacing=100;
+  let totalUnits = full + (rem>0 ? 1 : 0);
+  let unitsToDraw = Math.min(totalUnits, maxVisualUnits);
+  if(unitsToDraw<=0){ return; }
 
-  for(let c=0;c<full+(rem>0?1:0);c++){
+  let cols = Math.min(5, unitsToDraw);
+  let rows = Math.ceil(unitsToDraw/cols);
+  let hGap = 16;
+  let vGap = 20;
 
-    let cx=60+c*spacing, cy=120;
-    let filled = (c<full)?den:rem;
+  let maxRByWidth = Math.floor((cw - 40 - hGap*(cols-1)) / (2*cols));
+  let maxRByHeight = Math.floor((ch - 40 - vGap*(rows-1)) / (2*rows));
+  let r = Math.max(14, Math.min(32, maxRByWidth, maxRByHeight));
+
+  let gridWidth = cols*(2*r) + (cols-1)*hGap;
+  let gridHeight = rows*(2*r) + (rows-1)*vGap;
+  let startX = (cw-gridWidth)/2 + r;
+  let startY = (ch-gridHeight)/2 + r;
+
+  for(let c=0;c<unitsToDraw;c++){
+
+    let row = Math.floor(c/cols);
+    let col = c%cols;
+    let cx = startX + col*(2*r + hGap);
+    let cy = startY + row*(2*r + vGap);
+    let filled = (c<full) ? den : ((c===full && rem>0) ? rem : 0);
 
     for(let i=0;i<den;i++){
       let a1=-Math.PI/2+i*(2*Math.PI/den);
@@ -118,20 +242,32 @@ function drawPie(num, den){
 function drawBar(num, den){
 
   const ctx = barCanvas.getContext("2d");
-  ctx.clearRect(0,0,400,250);
+  const cw = barCanvas.width;
+  const ch = barCanvas.height;
+  ctx.clearRect(0,0,cw,ch);
 
   let full=Math.floor(num/den);
   let rem=num%den;
 
-  let w=30, spacing=15, h=180, y=40;
+  let totalUnits = full + (rem>0 ? 1 : 0);
+  let unitsToDraw = Math.min(totalUnits, maxVisualUnits);
+  if(unitsToDraw<=0){ return; }
 
-  for(let b=0;b<full+(rem>0?1:0);b++){
+  let h=Math.floor(ch*0.72), y=Math.floor((ch-h)/2);
+  let spacing=8;
+  let maxDrawWidth=cw-80;
+  let w=Math.floor((maxDrawWidth - spacing*(unitsToDraw-1))/unitsToDraw);
+  w=Math.max(18, Math.min(34, w));
+  let totalDrawWidth = unitsToDraw*w + (unitsToDraw-1)*spacing;
+  let xStart=(cw-totalDrawWidth)/2;
 
-    let x=40+b*(w+spacing);
+  for(let b=0;b<unitsToDraw;b++){
+
+    let x=xStart+b*(w+spacing);
 
     ctx.strokeRect(x,y,w,h);
 
-    let frac = (b<full)?1:rem/den;
+    let frac = (b<full) ? 1 : ((b===full && rem>0) ? rem/den : 0);
 
     ctx.fillStyle="dodgerblue";
     ctx.fillRect(x,y+h-h*frac,w,h*frac);
@@ -147,7 +283,7 @@ function drawBar(num, den){
   }
 }
 
-window.onload=drawFraction;
+window.onload=updateMode;
 
 </script>
 
